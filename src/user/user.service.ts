@@ -16,8 +16,8 @@ export class UserService {
     try {
       const hashedPassword = await argon2.hash(createUserInput.password);
       const user = await this.userRepository.create({
-        password: hashedPassword,
         ...createUserInput,
+        password: hashedPassword,
       });
 
       return await this.userRepository.save(user);
@@ -55,5 +55,9 @@ export class UserService {
       email: '',
       password: '',
     };
+  }
+
+  async getUserByName(userName: string): Promise<User> {
+    return await this.userRepository.findOne({ where: { userName } });
   }
 }

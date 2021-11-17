@@ -8,15 +8,26 @@ type User {
   email: String!
 }
 
+type Match {
+  matchId: ID!
+  player1: User!
+  player2: User!
+}
+
 type Query {
   users: [User!]!
   user: User!
+  matches: [Match!]!
+  match(id: Int!): Match!
 }
 
 type Mutation {
   createUser(createUserInput: CreateUserInput!): User!
   updateUser(updateUserInput: UpdateUserInput!): User!
   removeUser(id: Int!): User!
+  updateMatch(updateMatchInput: UpdateMatchInput!): Match!
+  removeMatch(id: Int!): Match!
+  searchOpponent(user: Int!): Int!
 }
 
 input CreateUserInput {
@@ -30,4 +41,14 @@ input UpdateUserInput {
   email: String
   password: String
   userId: ID!
+}
+
+input UpdateMatchInput {
+  """Example field (placeholder)"""
+  exampleField: Int
+  id: Int!
+}
+
+type Subscription {
+  getMatchId(id: Int!): Int!
 }

@@ -8,11 +8,17 @@ import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { JwtGqlAuthGuard } from './auth/guards/jwt-auth.guard';
 import { UserModule } from './user/user.module';
+import { MatchModule } from './match/match.module';
+import { PubSubModule } from './pub-sub/pub-sub.module';
 
 @Module({
   imports: [
     GraphQLModule.forRoot({
       autoSchemaFile: 'schema.gql',
+      subscriptions: {
+        'graphql-ws': true,
+        'subscriptions-transport-ws': true,
+      },
     }),
     TypeOrmModule.forRootAsync({
       useFactory: async () =>
@@ -23,6 +29,8 @@ import { UserModule } from './user/user.module';
     UserModule,
     AuthModule,
     ConfigModule.forRoot({ isGlobal: true }),
+    MatchModule,
+    PubSubModule,
   ],
   providers: [
     {

@@ -7,9 +7,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Match } from './entities/match.entity';
 import { MatchSubscriber } from './match.subscriber';
 import { PubSubModule } from 'src/pub-sub/pub-sub.module';
+import { Leg } from './entities/leg.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Match]), UserModule, PubSubModule],
+  imports: [TypeOrmModule.forFeature([Match, Leg]), UserModule, PubSubModule],
   providers: [MatchResolver, MatchService, UserService, MatchSubscriber],
 })
 export class MatchModule {}

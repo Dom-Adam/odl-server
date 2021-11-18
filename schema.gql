@@ -12,6 +12,14 @@ type Match {
   matchId: ID!
   player1: User!
   player2: User!
+  legs: [Leg!]!
+}
+
+type Leg {
+  legId: ID!
+  player1Points: Int!
+  player2Points: Int!
+  match: Match!
 }
 
 type Query {
@@ -46,7 +54,9 @@ input UpdateUserInput {
 input UpdateMatchInput {
   """Example field (placeholder)"""
   exampleField: Int
-  id: Int!
+  points: Int!
+  match: Int!
+  player: Int!
 }
 
 type Subscription {

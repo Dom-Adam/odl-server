@@ -2,63 +2,65 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-type User {
-  userId: ID!
-  userName: String!
-  email: String!
+type Leg {
+  id: ID!
+  points: [Int!]!
+  matchId: String!
+  match: Match!
+  isFinished: Boolean!
 }
 
 type Match {
-  matchId: ID!
-  player1: User!
-  player2: User!
+  id: ID!
+  players: [User!]!
   legs: [Leg!]!
 }
 
-type Leg {
-  legId: ID!
-  player1Points: Int!
-  player2Points: Int!
-  match: Match!
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  matches: [Match!]!
+  legs: [Leg!]!
 }
 
 type Query {
   users: [User!]!
   user: User!
   matches: [Match!]!
-  match(id: Int!): Match!
+  match(id: ID!): Match!
 }
 
 type Mutation {
   createUser(createUserInput: CreateUserInput!): User!
   updateUser(updateUserInput: UpdateUserInput!): User!
-  removeUser(id: Int!): User!
+  removeUser(id: String!): User!
   updateMatch(updateMatchInput: UpdateMatchInput!): Match!
-  removeMatch(id: Int!): Match!
-  searchOpponent(user: Int!): Int!
+  searchOpponent(user: ID!): String!
 }
 
 input CreateUserInput {
-  userName: String!
+  username: String!
   email: String!
   password: String!
 }
 
 input UpdateUserInput {
-  userName: String
+  username: String
   email: String
   password: String
-  userId: ID!
+  id: ID!
 }
 
 input UpdateMatchInput {
   """Example field (placeholder)"""
   exampleField: Int
-  points: Int!
-  match: Int!
-  player: Int!
+  pointsScored: Int!
+  matchId: String!
+  player: String!
+  legId: String!
 }
 
 type Subscription {
-  getMatchId(id: Int!): Int!
+  getMatchId(id: String!): Match!
 }

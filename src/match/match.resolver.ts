@@ -1,13 +1,19 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
-import { MatchService } from './match.service';
-import { Match } from './entities/match.entity';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  ID,
+  ResolveField,
+  Root,
+} from '@nestjs/graphql';
 import { UpdateMatchInput } from './dto/update-match.input';
-import { User } from 'src/user/entities/user.entity';
-import { CreateUserInput } from 'src/user/dto/create-user.input';
+import { Match } from './match.model';
+import { MatchService } from './match.service';
 
 @Resolver(() => Match)
 export class MatchResolver {
-  constructor(private readonly matchService: MatchService) {}
+  constructor(private matchService: MatchService) {}
 
   @Query(() => [Match], { name: 'matches' })
   findAll() {
@@ -15,25 +21,30 @@ export class MatchResolver {
   }
 
   @Query(() => Match, { name: 'match' })
-  findOne(@Args('id', { type: () => Int }) id: number) {
+  findOne(@Args('id', { type: () => ID }) id: string) {
     return this.matchService.findOne(id);
   }
 
   @Mutation(() => Match)
   updateMatch(
-    @Args('updateMatchInput') { points, match, player }: UpdateMatchInput,
+    @Args('updateMatchInput')
+    { pointsScored, matchId, player, legId }: UpdateMatchInput,
   ) {
-    return this.matchService.handleVisit(points, match, player);
+    return this.matchService.handleVisit(pointsScored, matchId, player, legId);
   }
 
-  @Mutation(() => Match)
-  removeMatch(@Args('id', { type: () => Int }) id: number) {
-    return this.matchService.remove(id);
+  @Mutation(() => String)
+  searchOpponent(@Args('user', { type: () => ID }) user: string) {
+    return this.matchService.searchOpponent(user);
   }
 
-  @Mutation(() => Int)
-  searchOpponent(@Args('user', { type: () => Int }) user: number) {
-    this.matchService.searchOpponent(user);
-    return user;
+  @ResolveField()
+  players(@Root() { id }: Match) {
+    return this.matchService.getPlayers(id);
+  }
+
+  @ResolveField()
+  legs(@Root() { id }: Match) {
+    return this.matchService.getLegs(id);
   }
 }

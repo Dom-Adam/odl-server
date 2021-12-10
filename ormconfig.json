@@ -1,6 +1,0 @@
-{
-	"type": "sqlite",
-	"synchronize": true,
-	"database": "./mydb.sql",
-	"logging": true
-}

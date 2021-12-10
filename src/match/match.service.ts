@@ -1,112 +1,151 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { UserService } from 'src/user/user.service';
-import { Connection, Repository } from 'typeorm';
-import { UpdateMatchInput } from './dto/update-match.input';
-import { Leg } from './entities/leg.entity';
-import { Match } from './entities/match.entity';
+import { Inject, Injectable } from '@nestjs/common';
+import { Leg } from '@prisma/client';
+import { PubSub } from 'graphql-subscriptions';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class MatchService {
   constructor(
-    @InjectRepository(Match)
-    private matchRepository: Repository<Match>,
-    private userService: UserService,
-    private connection: Connection,
-    @InjectRepository(Leg)
-    private legRepository: Repository<Leg>,
+    private prisma: PrismaService,
+    @Inject('PUB_SUB') private pubSub: PubSub,
   ) {}
-  queue: Array<number> = [];
+
+  queue: Array<string> = [];
+  loopIsRunning = false;
 
   async matchPlayers() {
     this.loopIsRunning = true;
+
     while (this.queue.length > 1) {
-      await this.create(
-        await this.userService.findOne(this.queue.shift()),
-        await this.userService.findOne(this.queue.shift()),
-      );
+      const player1Id = this.queue.shift();
+      const player2Id = this.queue.shift();
+
+      try {
+        const match = await this.prisma.match.create({
+          data: {
+            players: {
+              create: [
+                {
+                  index: 1,
+                  playerId: player1Id,
+                },
+                {
+                  index: 2,
+                  playerId: player2Id,
+                },
+              ],
+            },
+            legs: {
+              create: {
+                players: {
+                  create: [{ playerId: player1Id }, { playerId: player2Id }],
+                },
+              },
+            },
+          },
+        });
+        console.log(match);
+
+        this.pubSub.publish(`user${player1Id}`, { getMatchId: match });
+        this.pubSub.publish(`user${player2Id}`, { getMatchId: match });
+      } catch (e) {
+        console.log(e);
+      }
     }
     this.loopIsRunning = false;
   }
 
-  add(id: number) {
-    this.queue.push(id);
+  async findAll() {
+    return await this.prisma.match.findMany();
+  }
+
+  async findOne(id: string) {
+    return await this.prisma.match.findUnique({ where: { id } });
+  }
+
+  searchOpponent(user: string) {
+    this.queue.push(user);
     if (!this.loopIsRunning) {
       this.matchPlayers();
     }
+    return user;
   }
 
-  loopIsRunning = false;
+  async legs(id: string) {
+    return await this.prisma.match.findUnique({ where: { id } }).legs();
+  }
 
-  async create(player1, player2) {
-    const match = this.matchRepository.create({
-      player1,
-      player2,
+  async handleVisit(
+    pointsScored: number,
+    matchId: string,
+    player: string,
+    legId: string,
+  ) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        players: true,
+        legs: {
+          where: { isFinished: false },
+        },
+      },
     });
-    return await this.matchRepository.save(match);
-  }
 
-  async findAll() {
-    return await this.matchRepository.find();
-  }
+    let id = legId;
 
-  async findOne(id: number) {
-    return await this.matchRepository.findOne(id);
-  }
-
-  update(id: number, updateMatchInput: UpdateMatchInput) {
-    return `This action updates a #${id} match`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} match`;
-  }
-
-  searchOpponent(player: number) {
-    this.add(player);
-  }
-
-  stopSearchingOpponent(player: number) {
-    this.queue.filter((ele) => ele != player);
-  }
-
-  async handleVisit(points: number, matchId: number, player: number) {
-    const match = await this.matchRepository.findOne(matchId);
     if (match.legs.length == 0) {
-      this.legRepository.save(this.legRepository.create({ match: match }));
+      const leg = await this.prisma.leg.create({
+        data: {
+          matchId: match.id,
+          players: {
+            create: [
+              { playerId: match.players[0].playerId },
+              { playerId: match.players[1].playerId },
+            ],
+          },
+        },
+      });
+      id = leg.id;
     }
-    const legs = match.legs;
-    const leg = legs[legs.length - 1];
-    let player1Score = leg.player1Points;
-    let player2Score = leg.player2Points;
-    let pointsLeft: number;
 
-    if (player == match.player1.userId) {
-      pointsLeft = player1Score - points;
+    const pointsLeft = await (
+      await this.prisma.legsOnPlayers.findUnique({
+        where: { legId_playerId: { legId: id, playerId: player } },
+      })
+    ).points;
 
-      if (pointsLeft > 0) {
-        leg.player1Points = pointsLeft;
-        await this.connection.manager.save(leg);
-      } else if (pointsLeft == 0) {
-        leg.player1Points = 0;
-        await this.connection.manager.save(leg);
-        legs.push(this.legRepository.create({ match: match }));
-        await this.connection.manager.save(legs);
-      }
-    } else {
-      pointsLeft = player2Score - points;
-
-      if (pointsLeft > 0) {
-        leg.player2Points = pointsLeft;
-      } else if (pointsLeft == 0) {
-        leg.player2Points = 0;
-        await this.connection.manager.save(leg);
-        legs.push(this.legRepository.create({ match: match }));
-        await this.connection.manager.save(legs);
-      }
+    if (pointsLeft > pointsScored) {
+      await this.prisma.legsOnPlayers.update({
+        where: { legId_playerId: { legId: id, playerId: player } },
+        data: { points: { decrement: pointsScored } },
+      });
+    } else if (pointsLeft == pointsScored) {
+      await this.prisma.leg.update({
+        where: { id },
+        data: {
+          isFinished: true,
+          players: {
+            update: {
+              where: { legId_playerId: { legId: id, playerId: player } },
+              data: { points: 0 },
+            },
+          },
+        },
+      });
     }
-    await this.connection.manager.save(leg);
 
-    return match;
+    return await this.prisma.match.findUnique({ where: { id: matchId } });
+  }
+
+  async getPlayers(id: string) {
+    const match = await this.prisma.match
+      .findUnique({ where: { id } })
+      .players({ select: { matchPlayer: true }, orderBy: { index: 'asc' } });
+
+    return match.map((ele) => ele.matchPlayer);
+  }
+
+  async getLegs(id: string) {
+    return await this.prisma.match.findUnique({ where: { id } }).legs();
   }
 }

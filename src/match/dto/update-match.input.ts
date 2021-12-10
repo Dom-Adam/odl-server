@@ -4,11 +4,11 @@ import { InputType, Field, Int, PartialType } from '@nestjs/graphql';
 @InputType()
 export class UpdateMatchInput extends PartialType(CreateMatchInput) {
   @Field(() => Int)
-  points: number;
+  pointsScored: number;
 
-  @Field(() => Int)
-  match: number;
+  matchId: string;
 
-  @Field(() => Int)
-  player: number;
+  player: string;
+
+  legId: string;
 }

@@ -18,4 +18,8 @@ export class LegService {
   async getMatch(matchId: string, id: string) {
     return await this.prisma.leg.findUnique({ where: { id } }).match();
   }
+
+  async getVisits(id: string) {
+    return await this.prisma.leg.findUnique({ where: { id } }).visits();
+  }
 }

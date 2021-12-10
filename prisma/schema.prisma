@@ -17,6 +17,7 @@ model User {
   password String
   matches  MatchesOnPlayers[]
   legs     LegsOnPlayers[]
+  visits   Visit[]
 }
 
 model Match {
@@ -31,6 +32,7 @@ model Leg {
   match      Match           @relation(fields: [matchId], references: [id])
   matchId    String
   isFinished Boolean         @default(false)
+  visits     Visit[]
 }
 
 model LegsOnPlayers {
@@ -51,4 +53,13 @@ model MatchesOnPlayers {
   index       Int
 
   @@id([matchId, playerId])
+}
+
+model Visit {
+  id       String @id @default(uuid())
+  score    Int
+  player   User   @relation(fields: [playerId], references: [id])
+  playerId String
+  leg      Leg    @relation(fields: [legId], references: [id])
+  legId    String
 }

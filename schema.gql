@@ -2,12 +2,20 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type Visit {
+  id: ID!
+  score: Int!
+  legId: String!
+  playerId: String!
+}
+
 type Leg {
   id: ID!
   points: [Int!]!
   matchId: String!
   match: Match!
   isFinished: Boolean!
+  visits: [Visit!]!
 }
 
 type Match {

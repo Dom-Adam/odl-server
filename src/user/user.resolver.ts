@@ -25,8 +25,8 @@ export class UserResolver {
 
   @SkipJwt()
   @Mutation(() => User)
-  async createUser(@Args('createUserInput') createUserInput: CreateUserInput) {
-    this.userService.create(createUserInput);
+  createUser(@Args('createUserInput') createUserInput: CreateUserInput) {
+    return this.userService.create(createUserInput);
   }
 
   @Query(() => [User], { name: 'users' })

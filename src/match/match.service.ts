@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Leg } from '@prisma/client';
 import { PubSub } from 'graphql-subscriptions';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -108,29 +107,31 @@ export class MatchService {
       id = leg.id;
     }
 
-    const pointsLeft = await (
+    let score = pointsScored;
+
+    let pointsLeft = await (
       await this.prisma.legsOnPlayers.findUnique({
         where: { legId_playerId: { legId: id, playerId: player } },
       })
     ).points;
 
-    if (pointsLeft > pointsScored) {
-      await this.prisma.legsOnPlayers.update({
-        where: { legId_playerId: { legId: id, playerId: player } },
-        data: { points: { decrement: pointsScored } },
-      });
-    } else if (pointsLeft == pointsScored) {
+    if (pointsLeft < pointsScored) {
+      score = 0;
+    }
+
+    await this.prisma.legsOnPlayers.update({
+      where: { legId_playerId: { legId: id, playerId: player } },
+      data: { points: { decrement: score } },
+    });
+
+    await this.prisma.visit.create({
+      data: { score, playerId: player, legId: id },
+    });
+
+    if (pointsLeft == pointsScored) {
       await this.prisma.leg.update({
         where: { id },
-        data: {
-          isFinished: true,
-          players: {
-            update: {
-              where: { legId_playerId: { legId: id, playerId: player } },
-              data: { points: 0 },
-            },
-          },
-        },
+        data: { isFinished: true },
       });
     }
 

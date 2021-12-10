@@ -16,7 +16,7 @@ export class UserService {
       console.log(e);
     }
 
-    return this.prisma.user.create({
+    return await this.prisma.user.create({
       data: {
         ...createUserInput,
         password: hashedPassword,

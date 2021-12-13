@@ -2,11 +2,19 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type Dart {
+  id: ID!
+  value: Int!
+  field: Int!
+  segment: Int!
+}
+
 type Visit {
   id: ID!
-  score: Int!
+  darts: [Dart!]!
   legId: String!
   playerId: String!
+  isFinished: Boolean!
 }
 
 type Leg {
@@ -63,7 +71,8 @@ input UpdateUserInput {
 input UpdateMatchInput {
   """Example field (placeholder)"""
   exampleField: Int
-  pointsScored: Int!
+  field: Int!
+  segment: Int!
   matchId: String!
   player: String!
   legId: String!

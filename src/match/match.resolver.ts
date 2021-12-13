@@ -28,9 +28,9 @@ export class MatchResolver {
   @Mutation(() => Match)
   updateMatch(
     @Args('updateMatchInput')
-    { pointsScored, matchId, player, legId }: UpdateMatchInput,
+    { matchId, player, legId, field, segment }: UpdateMatchInput,
   ) {
-    return this.matchService.handleVisit(pointsScored, matchId, player, legId);
+    return this.matchService.handleVisit(field, segment, matchId, player, legId);
   }
 
   @Mutation(() => String)

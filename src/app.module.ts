@@ -11,6 +11,7 @@ import { PubSubModule } from './pub-sub/pub-sub.module';
 import { PrismaService } from './prisma/prisma.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { LegModule } from './leg/leg.module';
+import { VisitModule } from './visit/visit.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { LegModule } from './leg/leg.module';
     PubSubModule,
     PrismaModule,
     LegModule,
+    VisitModule,
   ],
   providers: [
     {

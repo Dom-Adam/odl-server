@@ -56,10 +56,20 @@ model MatchesOnPlayers {
 }
 
 model Visit {
-  id       String @id @default(uuid())
-  score    Int
-  player   User   @relation(fields: [playerId], references: [id])
-  playerId String
-  leg      Leg    @relation(fields: [legId], references: [id])
-  legId    String
+  id         String  @id @default(uuid())
+  player     User    @relation(fields: [playerId], references: [id])
+  playerId   String
+  leg        Leg     @relation(fields: [legId], references: [id])
+  legId      String
+  darts      Dart[]
+  isFinished Boolean @default(false)
+}
+
+model Dart {
+  id      String @id @default(uuid())
+  value   Int
+  field   Int
+  segment Int
+  visit   Visit  @relation(fields: [visitId], references: [id])
+  visitId String
 }

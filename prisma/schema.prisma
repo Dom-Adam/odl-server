@@ -21,9 +21,10 @@ model User {
 }
 
 model Match {
-  id      String             @id @default(uuid())
-  players MatchesOnPlayers[]
-  legs    Leg[]
+  id       String             @id @default(uuid())
+  players  MatchesOnPlayers[]
+  legs     Leg[]
+  throwing Int                @default(2)
 }
 
 model Leg {

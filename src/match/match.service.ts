@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { visit } from 'graphql';
 import { PubSub } from 'graphql-subscriptions';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -82,37 +81,52 @@ export class MatchService {
     player: string,
     legId: string,
   ) {
-    const match = this.prisma.match.findUnique({
+    const match = await this.prisma.match.findUnique({
       where: { id: matchId },
-      include: { legs: { where: { isFinished: false } }, players: true },
+      include: { legs: true, players: { orderBy: { index: 'asc' } } },
     });
 
+    let currentlyThrowing = match.throwing;
+
     let id = legId;
-    if (match.legs.length == 0) {
+    if (match.legs.every((ele) => ele.isFinished)) {
       const leg = await this.prisma.leg.create({
         data: {
           players: {
             create: [
-              { playerId: match.players[0] },
-              { playerId: match.players[1] },
+              { playerId: match.players[0].playerId },
+              { playerId: match.players[1].playerId },
             ],
           },
           matchId,
         },
       });
-
       id = leg.id;
+
+      currentlyThrowing = match.legs.length % 2 == 0 ? 2 : 1;
     }
 
-    const visit =
-      (await this.prisma.visit.findFirst({
-        where: { legId: id, playerId: player, isFinished: false },
+    let visit = await this.prisma.visit.findFirst({
+      where: { legId: id, isFinished: false },
+      include: { darts: { select: { value: true } } },
+    });
+
+    if (visit == null) {
+      currentlyThrowing = currentlyThrowing == 1 ? 2 : 1;
+
+      visit = await this.prisma.visit.create({
+        data: {
+          playerId: match.players[currentlyThrowing - 1].playerId,
+          legId: id,
+        },
         include: { darts: { select: { value: true } } },
-      })) ||
-      (await this.prisma.visit.create({
-        data: { playerId: player, legId: id },
-        include: { darts: { select: { value: true } } },
-      }));
+      });
+
+      await this.prisma.match.update({
+        where: { id: matchId },
+        data: { throwing: currentlyThrowing },
+      });
+    }
 
     let visitPoints = field * segment;
     visit.darts.forEach((ele) => (visitPoints += ele.value));
@@ -121,43 +135,47 @@ export class MatchService {
       select: { points: true },
     });
 
-    if (points >= visitPoints) {
-      await this.prisma.dart.create({
-        data: { value: field * segment, field, segment, visitId: visit.id },
-      });
+    console.log(player == match.players[currentlyThrowing - 1].playerId);
 
-      if (points == visitPoints || visit.darts.length >= 2) {
+    if (player == match.players[currentlyThrowing - 1].playerId) {
+      if (points >= visitPoints) {
+        await this.prisma.dart.create({
+          data: { value: field * segment, field, segment, visitId: visit.id },
+        });
+
+        if (points == visitPoints || visit.darts.length >= 2) {
+          await this.prisma.visit.update({
+            where: { id: visit.id },
+            data: { isFinished: true },
+          });
+
+          await this.prisma.legsOnPlayers.update({
+            where: { legId_playerId: { legId: id, playerId: player } },
+            data: { points: { decrement: visitPoints } },
+          });
+
+          if (points == visitPoints) {
+            await this.prisma.leg.update({
+              where: { id },
+              data: { isFinished: true },
+            });
+          }
+        }
+      } else {
         await this.prisma.visit.update({
           where: { id: visit.id },
           data: { isFinished: true },
         });
 
-        await this.prisma.legsOnPlayers.update({
-          where: { legId_playerId: { legId: id, playerId: player } },
-          data: { points: { decrement: visitPoints } },
+        await this.prisma.dart.updateMany({
+          where: { visitId: visit.id },
+          data: { value: 0 },
         });
 
-        if (points == visitPoints) {
-          await this.prisma.leg.update({
-            where: { id },
-            data: { isFinished: true },
-          });
-        }
+        await this.prisma.dart.create({
+          data: { value: 0, field, segment, visitId: visit.id },
+        });
       }
-    } else {
-      await this.prisma.visit.update({
-        where: { id: visit.id },
-        data: { isFinished: true },
-      });
-
-      await this.prisma.dart.updateMany({
-        where: { visitId: visit.id },
-        data: { value: 0 },
-      });
-
-      await this.prisma.dart.create({
-        data: { value: 0, field, segment, visitId: visit.id },
-      });
     }
 
     return await this.prisma.match.findUnique({ where: { id: matchId } });

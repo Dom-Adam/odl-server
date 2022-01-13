@@ -80,4 +80,5 @@ input UpdateMatchInput {
 
 type Subscription {
   getMatchId(id: String!): Match!
+  listenToMatch(matchId: String!): Match!
 }

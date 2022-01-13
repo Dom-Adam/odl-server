@@ -178,7 +178,11 @@ export class MatchService {
       }
     }
 
-    return await this.prisma.match.findUnique({ where: { id: matchId } });
+    const updatedMatch = await this.prisma.match.findUnique({
+      where: { id: matchId },
+    });
+    this.pubSub.publish(`match${matchId}`, { listenToMatch: updatedMatch });
+    return updatedMatch;
   }
 
   async getPlayers(id: string) {

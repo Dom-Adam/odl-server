@@ -15,6 +15,7 @@ import { SkipJwt } from 'src/auth/decorators/public.decorator';
 import { User } from './user.model';
 import { Match } from 'src/match/match.model';
 import { UserService } from './user.service';
+import { CurrentUser } from 'src/auth/decorators/current_user.decorator';
 
 @Resolver(() => User)
 export class UserResolver {
@@ -35,7 +36,7 @@ export class UserResolver {
   }
 
   @Query(() => User, { name: 'user' })
-  findOne(id: string) {
+  findOne(@Args('id') id: string) {
     return this.userService.findById(id);
   }
 

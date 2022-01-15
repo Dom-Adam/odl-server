@@ -8,8 +8,6 @@ export class LegResolver {
 
   @ResolveField()
   points(@Root() { id }: Leg) {
-    console.log('points resolver called');
-
     return this.legService.getPoints(id);
   }
 

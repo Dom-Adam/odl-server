@@ -42,7 +42,7 @@ type User {
 
 type Query {
   users: [User!]!
-  user: User!
+  user(id: String!): User!
   matches: [Match!]!
   match(id: ID!): Match!
 }
@@ -52,7 +52,7 @@ type Mutation {
   updateUser(updateUserInput: UpdateUserInput!): User!
   removeUser(id: String!): User!
   updateMatch(updateMatchInput: UpdateMatchInput!): Match!
-  searchOpponent(user: ID!): String!
+  searchOpponent: String!
 }
 
 input CreateUserInput {
@@ -74,7 +74,6 @@ input UpdateMatchInput {
   field: Int!
   segment: Int!
   matchId: String!
-  player: String!
   legId: String!
 }
 

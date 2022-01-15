@@ -81,6 +81,8 @@ export class MatchService {
     player: string,
     legId: string,
   ) {
+    console.log(player);
+
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
       include: { legs: true, players: { orderBy: { index: 'asc' } } },
@@ -134,8 +136,6 @@ export class MatchService {
       where: { legId_playerId: { legId: id, playerId: player } },
       select: { points: true },
     });
-
-    console.log(player == match.players[currentlyThrowing - 1].playerId);
 
     if (player == match.players[currentlyThrowing - 1].playerId) {
       if (points >= visitPoints) {

@@ -1,4 +1,4 @@
-import { Inject } from '@nestjs/common';
+import { Inject, UseGuards } from '@nestjs/common';
 import {
   Resolver,
   Query,
@@ -8,9 +8,12 @@ import {
   ResolveField,
   Root,
   Subscription,
+  Context,
 } from '@nestjs/graphql';
 import { PubSub } from 'graphql-subscriptions';
+import { CurrentUser } from 'src/auth/decorators/current_user.decorator';
 import { SkipJwt } from 'src/auth/decorators/public.decorator';
+import { JwtGqlAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UpdateMatchInput } from './dto/update-match.input';
 import { Match } from './match.model';
 import { MatchService } from './match.service';
@@ -35,20 +38,24 @@ export class MatchResolver {
   @Mutation(() => Match)
   updateMatch(
     @Args('updateMatchInput')
-    { matchId, player, legId, field, segment }: UpdateMatchInput,
+    { matchId, legId, field, segment }: UpdateMatchInput,
+    @CurrentUser() user: any,
   ) {
     return this.matchService.handleVisit(
       field,
       segment,
       matchId,
-      player,
+      user.userId,
       legId,
     );
   }
 
   @Mutation(() => String)
-  searchOpponent(@Args('user', { type: () => ID }) user: string) {
-    return this.matchService.searchOpponent(user);
+  @UseGuards(JwtGqlAuthGuard)
+  searchOpponent(@CurrentUser() user: any) {
+    console.log(user);
+
+    return this.matchService.searchOpponent(user.userId);
   }
 
   @SkipJwt()

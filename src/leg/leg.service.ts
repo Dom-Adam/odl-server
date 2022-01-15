@@ -6,8 +6,6 @@ export class LegService {
   constructor(private prisma: PrismaService) {}
 
   async getPoints(id: string) {
-    console.log('get points service called');
-
     const points = await this.prisma.leg
       .findUnique({ where: { id } })
       .players({ select: { points: true } });

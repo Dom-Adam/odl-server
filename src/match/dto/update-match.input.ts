@@ -5,8 +5,6 @@ import { InputType, Field, Int, PartialType } from '@nestjs/graphql';
 export class UpdateMatchInput extends PartialType(CreateMatchInput) {
   matchId: string;
 
-  player: string;
-
   legId: string;
 
   @Field(() => Int)

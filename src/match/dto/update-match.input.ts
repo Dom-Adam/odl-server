@@ -12,4 +12,6 @@ export class UpdateMatchInput extends PartialType(CreateMatchInput) {
 
   @Field(() => Int)
   segment: number;
+
+  isFinished: boolean;
 }

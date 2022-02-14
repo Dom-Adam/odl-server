@@ -85,6 +85,7 @@ export class MatchService {
     matchId: string,
     player: string,
     legId: string,
+    isFinished: boolean,
   ) {
     console.log(player);
 
@@ -181,6 +182,13 @@ export class MatchService {
           data: { value: 0, field, segment, visitId: visit.id },
         });
       }
+    }
+
+    if (isFinished) {
+      await this.prisma.match.update({
+        where: { id: matchId },
+        data: { isFinished: true },
+      });
     }
 
     const updatedMatch = await this.prisma.match.findUnique({

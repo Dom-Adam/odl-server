@@ -37,7 +37,7 @@ export class MatchResolver {
   @Mutation(() => Match)
   updateMatch(
     @Args('updateMatchInput')
-    { matchId, legId, field, segment }: UpdateMatchInput,
+    { matchId, legId, field, segment, isFinished }: UpdateMatchInput,
     @CurrentUser() user: any,
   ) {
     return this.matchService.handleVisit(
@@ -46,6 +46,7 @@ export class MatchResolver {
       matchId,
       user.userId,
       legId,
+      isFinished,
     );
   }
 

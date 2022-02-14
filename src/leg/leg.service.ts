@@ -8,7 +8,7 @@ export class LegService {
   async getPoints(id: string) {
     const points = await this.prisma.leg
       .findUnique({ where: { id } })
-      .players({ select: { points: true } });
+      .players({ orderBy: { index: 'asc' }, select: { points: true } });
 
     return points.map((ele) => ele.points);
   }
@@ -19,5 +19,9 @@ export class LegService {
 
   async getVisits(id: string) {
     return await this.prisma.leg.findUnique({ where: { id } }).visits();
+  }
+
+  async getPlayerId(legId: string) {
+    return await this.prisma.leg.findUnique({ where: { id: legId } }).players;
   }
 }

@@ -24,6 +24,7 @@ type Leg {
   match: Match!
   isFinished: Boolean!
   visits: [Visit!]!
+  playerId: String!
 }
 
 type Match {

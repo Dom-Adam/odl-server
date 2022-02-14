@@ -8,7 +8,6 @@ import {
   ResolveField,
   Root,
   Subscription,
-  Context,
 } from '@nestjs/graphql';
 import { PubSub } from 'graphql-subscriptions';
 import { CurrentUser } from 'src/auth/decorators/current_user.decorator';
@@ -53,6 +52,7 @@ export class MatchResolver {
   @Mutation(() => String)
   @UseGuards(JwtGqlAuthGuard)
   searchOpponent(@CurrentUser() user: any) {
+    console.log(`${user.username} search opponent`);
     console.log(user);
 
     return this.matchService.searchOpponent(user.userId);

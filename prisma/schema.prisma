@@ -42,6 +42,7 @@ model LegsOnPlayers {
   legPlayer User   @relation(fields: [playerId], references: [id])
   playerId  String
   points    Int    @default(501)
+  index     Int
 
   @@id([legId, playerId])
 }

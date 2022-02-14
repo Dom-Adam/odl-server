@@ -17,4 +17,6 @@ export class Leg {
   points: number[];
 
   visits: Visit[];
+
+  playerId: string;
 }

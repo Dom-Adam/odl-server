@@ -15,7 +15,6 @@ import { SkipJwt } from 'src/auth/decorators/public.decorator';
 import { User } from './user.model';
 import { Match } from 'src/match/match.model';
 import { UserService } from './user.service';
-import { CurrentUser } from 'src/auth/decorators/current_user.decorator';
 
 @Resolver(() => User)
 export class UserResolver {
@@ -53,6 +52,8 @@ export class UserResolver {
   @SkipJwt()
   @Subscription(() => Match)
   getMatchId(@Args('id') id: string) {
+    console.log('get match id');
+    
     return this.pubSub.asyncIterator(`user${id}`);
   }
 

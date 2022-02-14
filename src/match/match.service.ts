@@ -37,7 +37,10 @@ export class MatchService {
             legs: {
               create: {
                 players: {
-                  create: [{ playerId: player1Id }, { playerId: player2Id }],
+                  create: [
+                    { playerId: player1Id, index: 1 },
+                    { playerId: player2Id, index: 2 },
+                  ],
                 },
               },
             },
@@ -63,6 +66,8 @@ export class MatchService {
   }
 
   searchOpponent(user: string) {
+    console.log(this.queue);
+
     this.queue.push(user);
     if (!this.loopIsRunning) {
       this.matchPlayers();
@@ -96,8 +101,8 @@ export class MatchService {
         data: {
           players: {
             create: [
-              { playerId: match.players[0].playerId },
-              { playerId: match.players[1].playerId },
+              { playerId: match.players[0].playerId, index: 1 },
+              { playerId: match.players[1].playerId, index: 2 },
             ],
           },
           matchId,

@@ -20,7 +20,4 @@ export class LegResolver {
   visits(@Parent() { id }: Leg) {
     return this.legService.getVisits(id);
   }
-
-  @ResolveField()
-  playerId(@Parent() { id }: Leg) {}
 }

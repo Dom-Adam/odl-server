@@ -24,17 +24,17 @@ export class MatchResolver {
     @Inject('PUB_SUB') private pubSub: PubSub,
   ) {}
 
-  @Query(() => [Match], { name: 'matches' })
+  @Query(() => [Match], { name: 'matches', description: 'gets all matches' })
   findAll() {
     return this.matchService.findAll();
   }
 
-  @Query(() => Match, { name: 'match' })
-  findOne(@Args('id', { type: () => ID }) id: string) {
+  @Query(() => Match, { name: 'match', description: 'gets match by its id' })
+  findOne(@Args('id', { type: () => String }) id: string) {
     return this.matchService.findOne(id);
   }
 
-  @Mutation(() => Match)
+  @Mutation(() => Match, { description: 'updates match with specified data' })
   updateMatch(
     @Args('updateMatchInput')
     { matchId, legId, field, segment, isFinished }: UpdateMatchInput,
@@ -50,7 +50,7 @@ export class MatchResolver {
     );
   }
 
-  @Mutation(() => String)
+  @Mutation(() => String, { description: 'starts search for opponent' })
   @UseGuards(JwtGqlAuthGuard)
   searchOpponent(@CurrentUser() user: any) {
     console.log(`${user.username} search opponent`);
@@ -60,7 +60,10 @@ export class MatchResolver {
   }
 
   @SkipJwt()
-  @Subscription(() => Match)
+  @Subscription(() => Match, {
+    description:
+      'listens to updates of the match that corresponds to the specified id',
+  })
   listenToMatch(@Args('matchId') matchId: string) {
     return this.pubSub.asyncIterator(`match${matchId}`);
   }

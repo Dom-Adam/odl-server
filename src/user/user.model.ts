@@ -7,11 +7,15 @@ export class User {
   @Field(() => ID)
   id: string;
 
+  @Field({ description: 'the username of the user' })
   username: string;
 
+  @Field({ description: 'the email address of the user' })
   email: string;
 
+  @Field(() => [Match], { description: 'all matches the user ever played' })
   matches: Match[];
 
+  @Field(() => [Leg], { description: 'all legs the user ever played' })
   legs: Leg[];
 }

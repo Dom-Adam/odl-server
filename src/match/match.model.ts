@@ -7,9 +7,12 @@ export class Match {
   @Field(() => ID)
   id: string;
 
+  @Field(() => [User], { description: 'the participants of the match' })
   players: User[];
 
+  @Field(() => [Leg], { description: 'the legs of the match' })
   legs: Leg[];
 
+  @Field({ description: 'a boolean that indicates if the match is finished' })
   isFinished: boolean;
 }

@@ -24,36 +24,42 @@ export class UserResolver {
   ) {}
 
   @SkipJwt()
-  @Mutation(() => User)
+  @Mutation(() => User, { description: 'creates user with specified data' })
   createUser(@Args('createUserInput') createUserInput: CreateUserInput) {
     return this.userService.create(createUserInput);
   }
 
-  @Query(() => [User], { name: 'users' })
+  @Query(() => [User], { name: 'users', description: 'gets all users' })
   findAll() {
     return this.userService.findAll();
   }
 
-  @Query(() => User, { name: 'user' })
+  @Query(() => User, { name: 'user', description: 'gets user by its id' })
   findOne(@Args('id') id: string) {
     return this.userService.findById(id);
   }
 
-  @Mutation(() => User)
+  @Mutation(() => User, {
+    description: 'gets user by id and updates with specified data',
+  })
   updateUser(@Args('updateUserInput') updateUserInput: UpdateUserInput) {
     return this.userService.update(updateUserInput);
   }
 
-  @Mutation(() => User)
+  @Mutation(() => User, {
+    description: 'deletes the user that corresponds to the specified id',
+  })
   removeUser(@Args('id') id: string) {
     return this.userService.delete(id);
   }
 
   @SkipJwt()
-  @Subscription(() => Match)
+  @Subscription(() => Match, {
+    description: 'returns match data as soon as an opponent was found',
+  })
   getMatchId(@Args('id') id: string) {
     console.log('get match id');
-    
+
     return this.pubSub.asyncIterator(`user${id}`);
   }
 

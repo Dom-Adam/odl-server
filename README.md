@@ -1,73 +1,260 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
-</p>
+# odl-server
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+odl-server is the backend for an online multiplayer darts game,
+it is intended to be used with the odl-flutter-client.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## API Reference
 
-## Description
+### Get all items
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+#### Rest
 
-## Installation
-
-```bash
-$ npm install
+```http
+  POST /auth/login
 ```
 
-## Running the app
+| Parameter  | Type     | Description          |
+| :--------- | :------- | :------------------- |
+| `username` | `string` | Username of the user |
+| `password` | `string` | Password of the user |
 
-```bash
-# development
-$ npm run start
+This endpoint is used to fetch the JWT Token that is needed to
+access the GraphQL resolvers.
 
-# watch mode
-$ npm run start:dev
+#### GraphQL
 
-# production mode
-$ npm run start:prod
+##### Queries
+
+```gql
+type Query {
+  """
+  gets all users
+  """
+  users: [User!]!
+
+  """
+  gets user by its id
+  """
+  user(id: String!): User!
+
+  """
+  gets all matches
+  """
+  matches: [Match!]!
+
+  """
+  gets match by its id
+  """
+  match(id: String!): Match!
+}
 ```
 
-## Test
+##### Mutations
 
-```bash
-# unit tests
-$ npm run test
+```gql
+type Mutation {
+  """
+  creates user with specified data
+  """
+  createUser(createUserInput: CreateUserInput!): User!
 
-# e2e tests
-$ npm run test:e2e
+  """
+  gets user by id and updates with specified data
+  """
+  updateUser(updateUserInput: UpdateUserInput!): User!
 
-# test coverage
-$ npm run test:cov
+  """
+  deletes the user that corresponds to the specified id
+  """
+  removeUser(id: String!): User!
+
+  """
+  updates match with specified data
+  """
+  updateMatch(updateMatchInput: UpdateMatchInput!): Match!
+
+  """
+  starts search for opponent
+  """
+  searchOpponent: String!
+}
 ```
 
-## Support
+##### Subscriptions
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```gql
+type Subscription {
+  """
+  returns match data as soon as an opponent was found
+  """
+  getMatchId(id: String!): Match!
 
-## Stay in touch
+  """
+  listens to updates of the match that corresponds to the specified id
+  """
+  listenToMatch(matchId: String!): Match!
+}
+```
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+##### ObjectTypes
 
-## License
+```gql
+type User {
+  id: ID!
 
-Nest is [MIT licensed](LICENSE).
+  """
+  the username of the user
+  """
+  username: String!
+
+  """
+  the email address of the user
+  """
+  email: String!
+
+  """
+  all matches the user ever played
+  """
+  matches: [Match!]!
+
+  """
+  all legs the user ever played
+  """
+  legs: [Leg!]!
+}
+
+type Match {
+  id: ID!
+
+  """
+  the participants of the match
+  """
+  players: [User!]!
+
+  """
+  the legs of the match
+  """
+  legs: [Leg!]!
+
+  """
+  a boolean that indicates if the match is finished
+  """
+  isFinished: Boolean!
+}
+
+type Leg {
+  id: ID!
+
+  """
+  id of the match to which the leg belongs
+  """
+  matchId: String!
+
+  """
+  match to which the leg belongs
+  """
+  match: Match!
+
+  """
+  boolean indicating wether the leg is finished
+  """
+  isFinished: Boolean!
+
+  """
+  array where each element represents the points left in the leg for the user at the same index in players array of the match
+  """
+  points: [Int!]!
+
+  """
+  the visits that belong to the leg
+  """
+  visits: [Visit!]!
+}
+
+type Visit {
+  id: ID!
+
+  """
+  the darts that belong to the visit
+  """
+  darts: [Dart!]!
+
+  """
+  the id of the leg to which the visit belongs
+  """
+  legId: String!
+
+  """
+  the id of the player to whom the visit belongs
+  """
+  playerId: String!
+
+  """
+  boolean indicating wether the visit is finished
+  """
+  isFinished: Boolean!
+}
+
+type Dart {
+  id: ID!
+
+  """
+  the point value of the dart
+  """
+  value: Int!
+
+  """
+  the field in which the dart landed 25 beeing bullseye
+  """
+  field: Int!
+
+  """
+  indicates whether the dart landed in a single a double or a treble
+  """
+  segment: Int!
+}
+```
+
+##### InputTypes
+
+```gql
+input CreateUserInput {
+  username: String!
+  email: String!
+  password: String!
+}
+
+input UpdateUserInput {
+  username: String
+  email: String
+  password: String
+  id: ID!
+}
+
+input UpdateMatchInput {
+  """
+  id of the match that is getting updated
+  """
+  matchId: String!
+
+  """
+  id of the leg that is getting updated
+  """
+  legId: String!
+
+  """
+  the field in wich the dart landed where 25 stands for bulleye
+  """
+  field: Int!
+
+  """
+  indicates wheter the dart hit a treble a double or a single
+  """
+  segment: Int!
+
+  """
+  determinates whether the match is finished
+  """
+  isFinished: Boolean!
+}
+```

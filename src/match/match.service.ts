@@ -1,112 +1,212 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { UserService } from 'src/user/user.service';
-import { Connection, Repository } from 'typeorm';
-import { UpdateMatchInput } from './dto/update-match.input';
-import { Leg } from './entities/leg.entity';
-import { Match } from './entities/match.entity';
+import { Inject, Injectable } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class MatchService {
   constructor(
-    @InjectRepository(Match)
-    private matchRepository: Repository<Match>,
-    private userService: UserService,
-    private connection: Connection,
-    @InjectRepository(Leg)
-    private legRepository: Repository<Leg>,
+    private prisma: PrismaService,
+    @Inject('PUB_SUB') private pubSub: PubSub,
   ) {}
-  queue: Array<number> = [];
+
+  queue: Array<string> = [];
+  loopIsRunning = false;
 
   async matchPlayers() {
     this.loopIsRunning = true;
+
     while (this.queue.length > 1) {
-      await this.create(
-        await this.userService.findOne(this.queue.shift()),
-        await this.userService.findOne(this.queue.shift()),
-      );
+      const player1Id = this.queue.shift();
+      const player2Id = this.queue.shift();
+
+      try {
+        const match = await this.prisma.match.create({
+          data: {
+            players: {
+              create: [
+                {
+                  index: 1,
+                  playerId: player1Id,
+                },
+                {
+                  index: 2,
+                  playerId: player2Id,
+                },
+              ],
+            },
+            legs: {
+              create: {
+                players: {
+                  create: [
+                    { playerId: player1Id, index: 1 },
+                    { playerId: player2Id, index: 2 },
+                  ],
+                },
+              },
+            },
+          },
+        });
+        console.log(match);
+
+        this.pubSub.publish(`user${player1Id}`, { getMatchId: match });
+        this.pubSub.publish(`user${player2Id}`, { getMatchId: match });
+      } catch (e) {
+        console.log(e);
+      }
     }
     this.loopIsRunning = false;
   }
 
-  add(id: number) {
-    this.queue.push(id);
+  async findAll() {
+    return await this.prisma.match.findMany();
+  }
+
+  async findOne(id: string) {
+    return await this.prisma.match.findUnique({ where: { id } });
+  }
+
+  searchOpponent(user: string) {
+    console.log(this.queue);
+
+    this.queue.push(user);
     if (!this.loopIsRunning) {
       this.matchPlayers();
     }
+    return user;
   }
 
-  loopIsRunning = false;
+  async legs(id: string) {
+    return await this.prisma.match.findUnique({ where: { id } }).legs();
+  }
 
-  async create(player1, player2) {
-    const match = this.matchRepository.create({
-      player1,
-      player2,
+  async handleVisit(
+    field: number,
+    segment: number,
+    matchId: string,
+    player: string,
+    legId: string,
+    isFinished: boolean,
+  ) {
+    console.log(player);
+
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      include: { legs: true, players: { orderBy: { index: 'asc' } } },
     });
-    return await this.matchRepository.save(match);
-  }
 
-  async findAll() {
-    return await this.matchRepository.find();
-  }
+    let currentlyThrowing = match.throwing;
 
-  async findOne(id: number) {
-    return await this.matchRepository.findOne(id);
-  }
+    let id = legId;
+    if (match.legs.every((ele) => ele.isFinished)) {
+      const leg = await this.prisma.leg.create({
+        data: {
+          players: {
+            create: [
+              { playerId: match.players[0].playerId, index: 1 },
+              { playerId: match.players[1].playerId, index: 2 },
+            ],
+          },
+          matchId,
+        },
+      });
+      id = leg.id;
 
-  update(id: number, updateMatchInput: UpdateMatchInput) {
-    return `This action updates a #${id} match`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} match`;
-  }
-
-  searchOpponent(player: number) {
-    this.add(player);
-  }
-
-  stopSearchingOpponent(player: number) {
-    this.queue.filter((ele) => ele != player);
-  }
-
-  async handleVisit(points: number, matchId: number, player: number) {
-    const match = await this.matchRepository.findOne(matchId);
-    if (match.legs.length == 0) {
-      this.legRepository.save(this.legRepository.create({ match: match }));
+      currentlyThrowing = match.legs.length % 2 == 0 ? 2 : 1;
     }
-    const legs = match.legs;
-    const leg = legs[legs.length - 1];
-    let player1Score = leg.player1Points;
-    let player2Score = leg.player2Points;
-    let pointsLeft: number;
 
-    if (player == match.player1.userId) {
-      pointsLeft = player1Score - points;
+    let visit = await this.prisma.visit.findFirst({
+      where: { legId: id, isFinished: false },
+      include: { darts: { select: { value: true } } },
+    });
 
-      if (pointsLeft > 0) {
-        leg.player1Points = pointsLeft;
-        await this.connection.manager.save(leg);
-      } else if (pointsLeft == 0) {
-        leg.player1Points = 0;
-        await this.connection.manager.save(leg);
-        legs.push(this.legRepository.create({ match: match }));
-        await this.connection.manager.save(legs);
-      }
-    } else {
-      pointsLeft = player2Score - points;
+    if (visit == null) {
+      currentlyThrowing = currentlyThrowing == 1 ? 2 : 1;
 
-      if (pointsLeft > 0) {
-        leg.player2Points = pointsLeft;
-      } else if (pointsLeft == 0) {
-        leg.player2Points = 0;
-        await this.connection.manager.save(leg);
-        legs.push(this.legRepository.create({ match: match }));
-        await this.connection.manager.save(legs);
+      visit = await this.prisma.visit.create({
+        data: {
+          playerId: match.players[currentlyThrowing - 1].playerId,
+          legId: id,
+        },
+        include: { darts: { select: { value: true } } },
+      });
+
+      await this.prisma.match.update({
+        where: { id: matchId },
+        data: { throwing: currentlyThrowing },
+      });
+    }
+
+    let visitPoints = field * segment;
+    visit.darts.forEach((ele) => (visitPoints += ele.value));
+    const { points } = await this.prisma.legsOnPlayers.findUnique({
+      where: { legId_playerId: { legId: id, playerId: player } },
+      select: { points: true },
+    });
+
+    if (player == match.players[currentlyThrowing - 1].playerId) {
+      if (points >= visitPoints) {
+        await this.prisma.dart.create({
+          data: { value: field * segment, field, segment, visitId: visit.id },
+        });
+
+        if (points == visitPoints || visit.darts.length >= 2) {
+          await this.prisma.visit.update({
+            where: { id: visit.id },
+            data: { isFinished: true },
+          });
+
+          await this.prisma.legsOnPlayers.update({
+            where: { legId_playerId: { legId: id, playerId: player } },
+            data: { points: { decrement: visitPoints } },
+          });
+
+          if (points == visitPoints) {
+            await this.prisma.leg.update({
+              where: { id },
+              data: { isFinished: true },
+            });
+          }
+        }
+      } else {
+        await this.prisma.visit.update({
+          where: { id: visit.id },
+          data: { isFinished: true },
+        });
+
+        await this.prisma.dart.updateMany({
+          where: { visitId: visit.id },
+          data: { value: 0 },
+        });
+
+        await this.prisma.dart.create({
+          data: { value: 0, field, segment, visitId: visit.id },
+        });
       }
     }
-    await this.connection.manager.save(leg);
 
-    return match;
+    if (isFinished) {
+      await this.prisma.match.update({
+        where: { id: matchId },
+        data: { isFinished: true },
+      });
+    }
+
+    const updatedMatch = await this.prisma.match.findUnique({
+      where: { id: matchId },
+    });
+    this.pubSub.publish(`match${matchId}`, { listenToMatch: updatedMatch });
+    return updatedMatch;
+  }
+
+  async getPlayers(id: string) {
+    const match = await this.prisma.match
+      .findUnique({ where: { id } })
+      .players({ select: { matchPlayer: true }, orderBy: { index: 'asc' } });
+
+    return match.map((ele) => ele.matchPlayer);
+  }
+
+  async getLegs(id: string) {
+    return await this.prisma.match.findUnique({ where: { id } }).legs();
   }
 }

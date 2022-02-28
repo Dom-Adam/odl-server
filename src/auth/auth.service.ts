@@ -1,17 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { UserService } from 'src/user/user.service';
 import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private userService: UserService,
-    private jwtService: JwtService,
-  ) {}
+  constructor(private prisma: PrismaService, private jwtService: JwtService) {}
 
-  async validateUser(userName: string, password: string): Promise<any> {
-    const user = await this.userService.getUserByName(userName);
+  async validateUser(username: string, password: string): Promise<any> {
+    const user = await this.prisma.user.findUnique({ where: { username } });
 
     try {
       if (user && (await argon2.verify(user.password, password))) {
@@ -25,7 +22,7 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { username: user.userName, sub: user.userId };
+    const payload = { username: user.username, sub: user.id };
     return { access_token: this.jwtService.sign(payload) };
   }
 }

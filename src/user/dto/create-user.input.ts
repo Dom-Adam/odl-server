@@ -3,7 +3,7 @@ import { IsEmail } from 'class-validator';
 
 @InputType()
 export class CreateUserInput {
-  userName: string;
+  username: string;
 
   @IsEmail()
   email: string;

@@ -68,7 +68,10 @@ export class MatchService {
   searchOpponent(user: string) {
     console.log(this.queue);
 
-    this.queue.push(user);
+    if (!this.queue.includes(user)) {
+      this.queue.push(user);
+    }
+
     if (!this.loopIsRunning) {
       this.matchPlayers();
     }
